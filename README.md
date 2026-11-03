@@ -116,3 +116,21 @@ No virtual mouse cursors. No sluggish HUD button overlays. No background CPU pol
 | **YouTube In-Stream Ads** | Unblocked | **100% Blocked & Skipped** |
 | **Cinejoy 4K Servers** | Unconfigured | **4K Clusters (`Lisbon`, `secret`) prioritized** |
 | **System Idle CPU** | ~2% idle (98% pegged) | **94.7% Idle (0.0% background daemon)** |
+
+---
+
+## 6. Live Verification Log
+
+All entries below were captured on the physical Aceconn π+ (Hi3798MV300, 1 GB RAM, Chromium 92 on DefineOS) using the IR remote and recorded through `/dev/fb0` framebuffer snapshots.
+
+| Date | Test | Result |
+|---|---|---|
+| 2026-11-03 | Movy.sx → *Resident Evil* (`?play=true`) | Hardware-decoded edge-to-edge video: `videoWidth=1920`, `videoHeight=1080`, `position:fixed`, `z-index:999999`, no overlays or popups |
+| 2026-11-03 | In-page ad pass on Movy catalog | Zero ads, zero redirects; focus ring and spatial navigation intact |
+| 2026-11-03 | BACK from fullscreen playback | Clean exit to the Movy catalog |
+| 2026-11-03 | EXIT / HOME from Movy | Instant navigation to `file:///data/tv/www/index.html`; YouTube tile focused |
+| 2026-11-03 | Frame rate (Mali-450, `cdp.py fps 5`) | **60.2 FPS** sustained |
+| 2026-11-03 | D-Pad focus latency (after transition/shadow removal) | ~0.05 s |
+| 2026-11-03 | `cdp.py nav(url)` helper | Exported for reliable home navigation; committed as [`e133409`](https://github.com/PrpCena/stb-tv-browser/commit/e133409) |
+
+![CleanYourTV launcher after EXIT from Movy](captures/cleanyourtv_live_returned.png)
