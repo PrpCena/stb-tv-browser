@@ -284,23 +284,56 @@ BOOSTER_JS = """(function() {
         const style = document.createElement('style');
         style.id = 'tv-movy-css';
         style.textContent = `
-          /* High-visibility TV focus ring with spring scale */
-          :focus, a:focus, button:focus, [role="button"]:focus,
-          [tabindex]:focus, .card:focus, .poster:focus, [class*="card"]:focus, [class*="poster"]:focus {
-            outline: 3px solid rgba(255, 255, 255, 0.9) !important;
+          /* Clean, modern TV focus highlights with rounded corners & glass glow */
+          a:focus, button:focus, [role="button"]:focus {
+            outline: 2.5px solid rgba(255, 255, 255, 0.95) !important;
             outline-offset: 3px !important;
-            box-shadow: 0 0 18px rgba(16, 185, 129, 0.95) !important;
-            transform: scale(1.05) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 0 24px rgba(16, 185, 129, 0.85), 0 8px 32px rgba(0, 0, 0, 0.8) !important;
             z-index: 50 !important;
-            transition: transform 0.15s cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 0.15s ease !important;
+            transition: transform 0.2s cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 0.2s ease !important;
           }
 
-          /* Ensure cards and buttons have comfortable remote target sizes */
-          a, button, [role="button"], .card, .poster, [class*="card"], [class*="poster"] {
-            min-height: 48px;
+          /* Primary CTA Hero Buttons */
+          .mv-btn--primary:focus, a:focus > .mv-btn--primary {
+            transform: scale(1.06) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 0 28px rgba(16, 185, 129, 0.9) !important;
           }
 
-          /* Suppress ad containers, banners, and overlays */
+          /* Movie & TV Poster Cards */
+          .media-card, [class*="movieCard"] {
+            border-radius: 14px !important;
+            overflow: visible !important;
+          }
+          .media-card a, [class*="movieCard"] a {
+            border-radius: 14px !important;
+            display: block !important;
+          }
+          .media-card img, [class*="movieCard"] img,
+          [class*="movieCardImage"], [class*="movieCardFilter"] {
+            border-radius: 14px !important;
+          }
+
+          .media-card a:focus, [class*="movieCard"] a:focus {
+            transform: translateY(-8px) scale(1.06) !important;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 24px rgba(16, 185, 129, 0.75) !important;
+          }
+
+          /* Clean Header & Navigation layout */
+          header {
+            max-height: 80px !important;
+          }
+          header a, header button {
+            pointer-events: auto !important;
+          }
+          header a:focus, header button:focus {
+            transform: scale(1.08) !important;
+            border-radius: 20px !important;
+            box-shadow: 0 0 16px rgba(255, 255, 255, 0.8) !important;
+          }
+
+          /* Suppress banner ads, sponsored popups, and non-essential clutter */
           [class*="ad-"], [id*="ad-"], [class*="adsby"], [id*="adsby"],
           [class*="banner"], [id*="banner"], [class*="sponsor"],
           [class*="popup"], [id*="popup"], iframe[src*="ad"],
@@ -314,12 +347,7 @@ BOOSTER_JS = """(function() {
             opacity: 0 !important;
           }
 
-          /* Compact nav/header for 10-foot TV viewing */
-          header, nav, [class*="navbar"], [class*="topbar"] {
-            max-height: 72px !important;
-          }
-
-          /* Edge-to-edge video player */
+          /* Fullscreen Video Player */
           video {
             object-fit: contain !important;
           }
@@ -328,7 +356,7 @@ BOOSTER_JS = """(function() {
       }
     }
 
-    // B. Auto-focus Play / Resume / Watch button on title detail pages
+    // B. Auto-focus Play / Resume / Watch button on detail pages or hero banner on home
     const playBtn = Array.from(document.querySelectorAll('button, a, [role="button"]'))
       .find(el => {
         const t = (el.innerText || el.textContent || '').trim().toLowerCase();
@@ -344,12 +372,14 @@ BOOSTER_JS = """(function() {
     }
 
     // C. Make all cards and posters focusable via D-Pad spatial navigation
-    document.querySelectorAll('a, button, [role="button"], .card, .poster, [class*="card"], [class*="poster"]')
-      .forEach(el => {
-        if (!el.hasAttribute('tabindex')) {
-          el.setAttribute('tabindex', '0');
-        }
-      });
+    document.querySelectorAll('.media-card, [class*="movieCard"]').forEach(card => {
+      const a = card.querySelector('a');
+      if (a) {
+        if (!a.hasAttribute('tabindex')) a.setAttribute('tabindex', '0');
+        // Ensure parent div does not steal tabindex focus from anchor
+        if (card.hasAttribute('tabindex')) card.removeAttribute('tabindex');
+      }
+    });
 
     // D. Edge-to-edge video playback when active
     const v = document.querySelector('video');
