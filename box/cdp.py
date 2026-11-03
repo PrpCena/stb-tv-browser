@@ -101,6 +101,14 @@ def page_ws():
     return ws
 
 
+def nav(url):
+    ws = page_ws()
+    try:
+        return ws.call("Page.navigate", {"url": url})
+    finally:
+        ws.close()
+
+
 def evaluate(expr, await_promise=False):
     ws = page_ws()
     try:
