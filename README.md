@@ -54,6 +54,18 @@ No virtual mouse cursors. No sluggish HUD button overlays. No background CPU pol
 - **Auto Play/Resume Focus:** Daemon automatically focuses the **Play** or **Resume** button on details pages, enabling instant single-click movie playback.
 - **Hardware Decoding:** Plays edge-to-edge full screen at a steady **59.4 - 60.7 FPS** via the HiSilicon bigfish VDEC hardware.
 
+### E. Movy.sx Authentic TV Streaming Experience
+- **Tailwind CSS v4 Compatibility Fix (`box/movy_tv.css`):**
+  - Movy uses modern Tailwind CSS v4, which packages all stylesheets with `@property` and `@layer` rules.
+  - Chromium 92 (embedded on the STB) does not support CSS `@property` with `syntax: "*"` or `@layer` blocks (introduced in Chrome 99+). This previously caused Chromium's CSS parser to drop all ~2,000 utility rules (`.flex`, `.hidden`, `.items-center`, grids), breaking the layout into an unstyled vertical column where the navigation and cards were pushed 2,000px down.
+  - Automatically unwraps `@layer` rules and strips unsupported `@property` blocks into `box/movy_tv.css` (1,162 active CSS rules), restoring full modern layout and flexbox behavior.
+- **Authentic TV Layout Matching Desktop Reference:**
+  - **Top Navigation Pill:** Anchored cleanly at the top-right (`[ Home | Movies | Shows | Anime | Search | User ]`) with translucent frosted dark background (`rgba(22, 22, 26, 0.75)`).
+  - **Hero Billboard:** Scaled to 520px height so that both the primary Hero banner (Resident Evil title, red `#1 in movies` badge, metadata, synopsis, and Play/More info buttons) AND the entire **TOP 10 on Movy** content shelf fit simultaneously on a single 1080p TV display without scrolling.
+  - **Remote D-Pad Navigation:** Clean rounded focus outlines (`border-radius: 14px`, emerald/white glass glow), automatic Play button focus on load, and seamless spatial navigation between top navigation, hero actions, and content shelves.
+  - **Ad & Popup Suppression:** Zero overlay banners, popups, or redirects.
+
+
 ---
 
 ## 3. Remote Control Keymap

@@ -35,6 +35,15 @@ HOME_KEYS = {102, 139, 174, 398}
 DEV = "/dev/input/event0"
 EVSZ = struct.calcsize("llHHi")
 
+MOVY_CSS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "movy_tv.css")
+MOVY_CSS = ""
+if os.path.exists(MOVY_CSS_FILE):
+    try:
+        with open(MOVY_CSS_FILE, "r", encoding="utf-8") as f:
+            MOVY_CSS = f.read()
+    except Exception:
+        pass
+
 BOOSTER_JS = """(function() {
   if (window.__TV_BOOSTER_ACTIVE) return;
   window.__TV_BOOSTER_ACTIVE = true;
@@ -277,86 +286,23 @@ BOOSTER_JS = """(function() {
   function handleMovy() {
     if (!location.hostname.includes('movy.sx')) return;
 
-    // A. Inject TV CSS (High-visibility focus rings, card sizing, ad suppression, video fit)
+    // A. Initial scroll position clamp to prevent jumping past hero banner
+    if (location.pathname === '/' && window.scrollY > 0 && !window.__userNavigated) {
+      window.scrollTo(0, 0);
+    }
+
+    // B. Inject Complete TV Stylesheet (Tailwind CSS v4 compatibility + TV layout + focus rings + ad suppression)
     if (!document.getElementById('tv-movy-css')) {
       const parent = document.head || document.documentElement || document.body;
       if (parent) {
         const style = document.createElement('style');
         style.id = 'tv-movy-css';
-        style.textContent = `
-          /* Clean, modern TV focus highlights with rounded corners & glass glow */
-          a:focus, button:focus, [role="button"]:focus {
-            outline: 2.5px solid rgba(255, 255, 255, 0.95) !important;
-            outline-offset: 3px !important;
-            border-radius: 14px !important;
-            box-shadow: 0 0 24px rgba(16, 185, 129, 0.85), 0 8px 32px rgba(0, 0, 0, 0.8) !important;
-            z-index: 50 !important;
-            transition: transform 0.2s cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 0.2s ease !important;
-          }
-
-          /* Primary CTA Hero Buttons */
-          .mv-btn--primary:focus, a:focus > .mv-btn--primary {
-            transform: scale(1.06) !important;
-            border-radius: 12px !important;
-            box-shadow: 0 0 28px rgba(16, 185, 129, 0.9) !important;
-          }
-
-          /* Movie & TV Poster Cards */
-          .media-card, [class*="movieCard"] {
-            border-radius: 14px !important;
-            overflow: visible !important;
-          }
-          .media-card a, [class*="movieCard"] a {
-            border-radius: 14px !important;
-            display: block !important;
-          }
-          .media-card img, [class*="movieCard"] img,
-          [class*="movieCardImage"], [class*="movieCardFilter"] {
-            border-radius: 14px !important;
-          }
-
-          .media-card a:focus, [class*="movieCard"] a:focus {
-            transform: translateY(-8px) scale(1.06) !important;
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 24px rgba(16, 185, 129, 0.75) !important;
-          }
-
-          /* Clean Header & Navigation layout */
-          header {
-            max-height: 80px !important;
-          }
-          header a, header button {
-            pointer-events: auto !important;
-          }
-          header a:focus, header button:focus {
-            transform: scale(1.08) !important;
-            border-radius: 20px !important;
-            box-shadow: 0 0 16px rgba(255, 255, 255, 0.8) !important;
-          }
-
-          /* Suppress banner ads, sponsored popups, and non-essential clutter */
-          [class*="ad-"], [id*="ad-"], [class*="adsby"], [id*="adsby"],
-          [class*="banner"], [id*="banner"], [class*="sponsor"],
-          [class*="popup"], [id*="popup"], iframe[src*="ad"],
-          iframe[src*="doubleclick"], iframe[src*="googlesyndication"],
-          .ad-container, .native-ad, .promo, .promo-banner {
-            display: none !important;
-            visibility: hidden !important;
-            pointer-events: none !important;
-            height: 0 !important;
-            width: 0 !important;
-            opacity: 0 !important;
-          }
-
-          /* Fullscreen Video Player */
-          video {
-            object-fit: contain !important;
-          }
-        `;
+        style.textContent = __MOVY_CSS__;
         parent.appendChild(style);
       }
     }
 
-    // B. Auto-focus Play / Resume / Watch button on detail pages or hero banner on home
+    // C. Auto-focus Play / Resume / Watch button on detail pages or hero banner on home
     const playBtn = Array.from(document.querySelectorAll('button, a, [role="button"]'))
       .find(el => {
         const t = (el.innerText || el.textContent || '').trim().toLowerCase();
@@ -367,21 +313,22 @@ BOOSTER_JS = """(function() {
       const active = document.activeElement;
       if (!active || active === document.body || active.tagName === 'HTML') {
         playBtn.focus();
-        playBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        if (location.pathname !== '/') {
+          playBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
       }
     }
 
-    // C. Make all cards and posters focusable via D-Pad spatial navigation
-    document.querySelectorAll('.media-card, [class*="movieCard"]').forEach(card => {
-      const a = card.querySelector('a');
+    // D. Make all cards, posters, and nav items focusable via D-Pad spatial navigation
+    document.querySelectorAll('.media-card, [class*="movieCard"], article, nav a, nav button').forEach(el => {
+      const a = (el.tagName === 'A' || el.tagName === 'BUTTON') ? el : el.querySelector('a, button');
       if (a) {
         if (!a.hasAttribute('tabindex')) a.setAttribute('tabindex', '0');
-        // Ensure parent div does not steal tabindex focus from anchor
-        if (card.hasAttribute('tabindex')) card.removeAttribute('tabindex');
+        if (el !== a && el.hasAttribute('tabindex')) el.removeAttribute('tabindex');
       }
     });
 
-    // D. Edge-to-edge video playback when active
+    // E. Edge-to-edge video playback when active
     const v = document.querySelector('video');
     if (v && (v.currentTime > 0 || !v.paused)) {
       if (v.style.position !== 'fixed') {
@@ -397,6 +344,15 @@ BOOSTER_JS = """(function() {
     }
   }
 
+  window.addEventListener('focusin', function(e) {
+    window.__userNavigated = true;
+    const el = e.target;
+    if (!el) return;
+    if (el.closest && (el.closest('.media-card') || el.closest('[class*="movieCard"]'))) {
+      el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    }
+  }, true);
+
   setInterval(handleYouTube, 50);
   setInterval(function() {
     injectStyles();
@@ -405,6 +361,8 @@ BOOSTER_JS = """(function() {
   }, 500);
 
 })();"""
+
+BOOSTER_JS = BOOSTER_JS.replace("__MOVY_CSS__", json.dumps(MOVY_CSS))
 
 BACK_JS = """(function(){
   if (location.hostname.includes('movy.sx')) {
