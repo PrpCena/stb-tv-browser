@@ -1,12 +1,12 @@
 #!/bin/sh
 # Zero-Bloat TV Browser Startup Script for Aceconn Pi+ 4K STB
-# HiSilicon Hi3798MV300 (bigfish) / ARM Mali-450 / 1080p60
+# HiSilicon Hi3798MV300 (bigfish) / ARM Mali-450 / 4K 60Hz HDMI
 
 # 1. Performance: bump CPU governor to maximum (1.6 GHz)
 echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null
 
-# 2. Display: force progressive 1080p60 on disp1 (HDMI)
-echo "fmt 1080p60" > /proc/msp/disp1 2>/dev/null
+# 2. Display: force progressive 4K 60Hz on disp1 (HDMI) with 1080p fallback
+echo "fmt 3840x2160_60" > /proc/msp/disp1 2>/dev/null || echo "fmt 1080p60" > /proc/msp/disp1 2>/dev/null
 
 # 3. Clean screen: hide stock OSD layer (hifb1) and zero framebuffer
 echo "hide" > /proc/msp/hifb1 2>/dev/null
@@ -33,7 +33,7 @@ nameserver 1.1.1.1
 EOF
 /usr/sbin/ntpdate -u time.google.com >/dev/null 2>&1 &
 
-# 7. Start zero-CPU IR remote helper for BACK key navigation
+# 7. Start TV Companion Daemon (Ad-blocker, 720p/1080p thumbnail upgrader, Cinejoy enhancer, and BACK key listener)
 nohup python /data/tv/keyd.py >/tmp/keyd.log 2>&1 &
 
 # 8. Background watchdog: keep hifb1 hidden and Wi-Fi alive
@@ -68,7 +68,7 @@ export LD_LIBRARY_PATH=/usr/share/netflix/lib/hisi3798mv200/:/usr/share/netflix/
             --content-shell-host-window-size=1920x1080 \
             --disable-smooth-scrolling \
             --force-prefers-reduced-motion \
-            --user-agent="Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/4.0 Chrome/76.0.3809.146 TV Safari/537.36" \
+            --user-agent="Mozilla/5.0 (Web0S; SmartTV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.162 Safari/537.36 WebAppManager" \
             "file:///data/tv/www/index.html" >/tmp/tv_chromium.log 2>&1
         sleep 1
     done

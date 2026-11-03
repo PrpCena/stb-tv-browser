@@ -92,7 +92,13 @@ def page_ws():
     t = tabs()
     if not t:
         raise SystemExit("no page tab")
-    return WS(t[0]["webSocketDebuggerUrl"])
+    ws = WS(t[0]["webSocketDebuggerUrl"])
+    try:
+        ws.call("Debugger.enable")
+        ws.call("Debugger.setBreakpointsActive", {"active": False})
+    except Exception:
+        pass
+    return ws
 
 
 def evaluate(expr, await_promise=False):
