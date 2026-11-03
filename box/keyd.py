@@ -27,11 +27,11 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cdp  # noqa: E402
 
-# Remote Keys:
-# 1 (ESC), 14 (BACKSPACE), 158 (KEY_BACK), 174 (KEY_EXIT), 175 (KEY_XFER)
-BACK_KEYS = {1, 14, 158, 174, 175}
-# Direct Home Keys: 102 (KEY_HOME), 139 (KEY_MENU), 398 (RED)
-HOME_KEYS = {102, 139, 398}
+## Remote Keys:
+# 1 (ESC), 14 (BACKSPACE), 158 (KEY_BACK), 175 (KEY_XFER)
+BACK_KEYS = {1, 14, 158, 175}
+# Direct Home / Exit Keys: 102 (KEY_HOME), 139 (KEY_MENU), 174 (KEY_EXIT), 398 (RED)
+HOME_KEYS = {102, 139, 174, 398}
 DEV = "/dev/input/event0"
 EVSZ = struct.calcsize("llHHi")
 
@@ -55,27 +55,37 @@ BOOSTER_JS = """(function() {
     }
   } catch(e) {}
 
-  // 3. 4K Ultra HD screen dimensions & high-DPI emulation
+  // 3. Screen dimensions & high quality video decoding capabilities
   try {
-    Object.defineProperty(screen, 'width', { get: () => 3840 });
-    Object.defineProperty(screen, 'height', { get: () => 2160 });
-    Object.defineProperty(screen, 'availWidth', { get: () => 3840 });
-    Object.defineProperty(screen, 'availHeight', { get: () => 2160 });
-    Object.defineProperty(window, 'devicePixelRatio', { get: () => 2.0 });
+    Object.defineProperty(screen, 'width', { get: () => 1920 });
+    Object.defineProperty(screen, 'height', { get: () => 1080 });
+    Object.defineProperty(screen, 'availWidth', { get: () => 1920 });
+    Object.defineProperty(screen, 'availHeight', { get: () => 1080 });
+    Object.defineProperty(window, 'devicePixelRatio', { get: () => 1.0 });
+  } catch(e) {}
+
+  try {
+    if (navigator.mediaCapabilities && navigator.mediaCapabilities.decodingInfo) {
+      navigator.mediaCapabilities.decodingInfo = async function() {
+        return { supported: true, smooth: true, powerEfficient: true };
+      };
+    }
   } catch(e) {}
 
   // 4. Inject Global TV Styles (Focus Outlines, SVG logo fix, Hide Banner Ads)
   function injectStyles() {
     if (document.getElementById('tv-booster-css')) return;
+    // NEVER inject focus outlines on the local CleanYourTV launcher
+    if (location.protocol === 'file:') return;
+
     const parent = document.head || document.documentElement || document.body;
     if (!parent) return;
     const style = document.createElement('style');
     style.id = 'tv-booster-css';
     style.textContent = `
       :focus, a:focus, button:focus, [tabindex]:focus, [role="button"]:focus {
-        outline: 4px solid #38bdf8 !important;
+        outline: 3px solid rgba(255, 255, 255, 0.8) !important;
         outline-offset: 2px !important;
-        box-shadow: 0 0 16px rgba(56, 189, 248, 0.9) !important;
       }
       .brand-mark, img[src*="logomark"], .logo-legible {
         max-height: 48px !important;
@@ -86,12 +96,12 @@ BOOSTER_JS = """(function() {
       .app-shell > div:first-child {
         max-height: 72px !important;
       }
-      /* Comprehensive uBlock-style Ad Removal */
-      ytlr-thumbnail-details[bg*="googlesyndication"],
+      /* Comprehensive uBlock-style Ad Removal */\n      ytlr-thumbnail-details[bg*="googlesyndication"],
       ytlr-banner-renderer,
       .ytp-ad-overlay-container,
       .video-ads,
       .ad-showing .ytp-ad-text,
+      .ad-interrupting,
       iframe[src*="doubleclick"],
       iframe[src*="ad"],
       iframe[src*="googleads"],
@@ -116,7 +126,69 @@ BOOSTER_JS = """(function() {
     parent.appendChild(style);
   }
 
-  // 5. Remote OK / Enter key handler:
+  // 5. uBlock-Style In-Flight Player Ad Stripping (Intercept JSON & initial player state)
+  try {
+    const originalParse = JSON.parse;
+    JSON.parse = function() {
+      const data = originalParse.apply(this, arguments);
+      if (data && typeof data === 'object') {
+        if (data.adPlacements) data.adPlacements = [];
+        if (data.playerAds) data.playerAds = [];
+        if (data.adSlots) data.adSlots = [];
+        if (data.adBreakParams) delete data.adBreakParams;
+      }
+      return data;
+    };
+  } catch(e) {}
+
+  try {
+    let initialResponse = window.ytInitialPlayerResponse;
+    Object.defineProperty(window, 'ytInitialPlayerResponse', {
+      get: function() { return initialResponse; },
+      set: function(val) {
+        if (val && typeof val === 'object') {
+          if (val.adPlacements) val.adPlacements = [];
+          if (val.playerAds) val.playerAds = [];
+          if (val.adSlots) val.adSlots = [];
+        }
+        initialResponse = val;
+      },
+      configurable: true
+    });
+  } catch(e) {}
+
+  // 6. Network Fetch Interception for YouTube & streaming player endpoints
+  try {
+    const origFetch = window.fetch;
+    if (origFetch) {
+      window.fetch = async function(...args) {
+        const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || '';
+        if (url.includes('/api/stats/ads') || url.includes('/pagead/') || url.includes('doubleclick.net')) {
+          return new Response(JSON.stringify({}), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        const response = await origFetch.apply(this, args);
+        if (url.includes('/youtubei/v1/player')) {
+          try {
+            const clone = response.clone();
+            const data = await clone.json();
+            if (data && typeof data === 'object') {
+              if (data.adPlacements) data.adPlacements = [];
+              if (data.playerAds) data.playerAds = [];
+              if (data.adSlots) data.adSlots = [];
+              return new Response(JSON.stringify(data), {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers
+              });
+            }
+          } catch(e) {}
+        }
+        return response;
+      };
+    }
+  } catch(e) {}
+
+  // 7. Remote OK / Enter key handler:
   window.addEventListener('keydown', function(e) {
     if (e.keyCode === 13 || e.key === 'Enter') {
       const el = document.activeElement;
@@ -130,7 +202,7 @@ BOOSTER_JS = """(function() {
     }
   }, true);
 
-  // 6. Remote Media Controls for Video Playback (Cinejoy / Web Video)
+  // 8. Remote Media Controls for Video Playback (Cinejoy / Web Video)
   window.addEventListener('keydown', function(e) {
     const video = document.querySelector('video');
     if (!video) return;
@@ -148,7 +220,7 @@ BOOSTER_JS = """(function() {
     }
   }, true);
 
-  // 7. Cinejoy Helpers
+  // 9. Cinejoy Helpers
   function handleCinejoy() {
     if (!location.hostname.includes('cinejoy')) return;
     const logo = document.querySelector('.brand-mark, img[src*="logomark"]');
@@ -179,30 +251,32 @@ BOOSTER_JS = """(function() {
     }
   }
 
-  // 8. YouTube TV Helpers (HD Thumbnails & Ad Skipper)
+  // 10. YouTube TV Helpers (HD Thumbnails & Instant Ad Skipper)
   function handleYouTube() {
     if (!location.hostname.includes('youtube.com')) return;
     document.querySelectorAll('ytlr-thumbnail-details').forEach(el => {
       const bg = el.style.backgroundImage || getComputedStyle(el).backgroundImage;
       if (bg && bg.includes('hqdefault.jpg?sqp=')) {
-        el.style.backgroundImage = bg.replace(/hqdefault\.jpg\?sqp=[^"\)]+/, 'hq720.jpg');
+        el.style.backgroundImage = bg.replace(/hqdefault\\.jpg\\?sqp=[^"\\)]+/, 'hq720.jpg');
       }
     });
     const video = document.querySelector('video');
-    const ad = document.querySelector('.ad-showing, .ad-interrupting, .video-ads');
+    const ad = document.querySelector('.ad-showing, .ad-interrupting, .video-ads, .ytp-ad-player-overlay');
     if (video && ad) {
+      video.muted = true;
+      video.playbackRate = 16.0;
       if (isFinite(video.duration) && video.duration > 0) {
         video.currentTime = video.duration;
       }
     }
-    const skip = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button');
+    const skip = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .videoAdUiSkipButton');
     if (skip) skip.click();
   }
 
+  setInterval(handleYouTube, 50);
   setInterval(function() {
     injectStyles();
     handleCinejoy();
-    handleYouTube();
   }, 500);
 
 })();"""
@@ -229,15 +303,46 @@ BACK_JS = """(function(){
     window.history.back();
     return 'history_back';
   }
-  window.location.href = 'file:///data/tv/www/index.html';
   return 'go_home';
 })()"""
+
+
+def navigate_home(ws):
+    """Browser-level navigation to file:/// launcher to bypass page-level file:// security blocking."""
+    try:
+        if ws:
+            ws.call("Page.navigate", {"url": "file:///data/tv/www/index.html"})
+        else:
+            cdp.nav("file:///data/tv/www/index.html")
+    except Exception:
+        try:
+            cdp.nav("file:///data/tv/www/index.html")
+        except Exception:
+            pass
 
 
 def setup_devtools():
     try:
         ws = cdp.page_ws()
         ws.call("Page.enable")
+        try:
+            ws.call("Network.enable")
+            ws.call("Network.setBlockedURLs", {
+                "urls": [
+                    "*doubleclick.net*",
+                    "*googleads.g.doubleclick.net*",
+                    "*pagead2.googlesyndication.com*",
+                    "*youtube.com/api/stats/ads*",
+                    "*youtube.com/pagead/*",
+                    "*youtube.com/youtubei/v1/att/*",
+                    "*adservice.google.*",
+                    "*adnxs.com*",
+                    "*popads.net*",
+                    "*histats.com*",
+                ]
+            })
+        except Exception:
+            pass
         ws.call("Debugger.enable")
         ws.call("Debugger.setBreakpointsActive", {"active": False})
         ws.call("Page.addScriptToEvaluateOnNewDocument", {"source": BOOSTER_JS})
@@ -297,18 +402,17 @@ def main():
                 if len(buf) >= EVSZ:
                     _, _, etype, code, val = struct.unpack("llHHi", buf)
                     if etype == 1 and val == 1:
-                        # Direct Home Key: return immediately to CleanYourTV launcher
+                        # Direct Home / Exit Key: return immediately to CleanYourTV launcher
                         if code in HOME_KEYS:
-                            try:
-                                cdp.evaluate("window.location.href = 'file:///data/tv/www/index.html';")
-                            except Exception:
-                                pass
-                        # Back / Exit Key: intelligent history / fullscreen / home return
+                            navigate_home(ws)
+                        # Back Key: intelligent history / fullscreen / home return
                         elif code in BACK_KEYS:
                             try:
-                                cdp.evaluate(BACK_JS)
+                                res = cdp.evaluate(BACK_JS)
+                                if res == "go_home":
+                                    navigate_home(ws)
                             except Exception:
-                                pass
+                                navigate_home(ws)
             except OSError:
                 try:
                     os.close(ev_fd)

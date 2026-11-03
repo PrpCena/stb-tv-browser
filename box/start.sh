@@ -68,7 +68,7 @@ export LD_LIBRARY_PATH=/usr/share/netflix/lib/hisi3798mv200/:/usr/share/netflix/
             --content-shell-host-window-size=1920x1080 \
             --disable-smooth-scrolling \
             --force-prefers-reduced-motion \
-            --user-agent="Mozilla/5.0 (Web0S; SmartTV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.162 Safari/537.36 WebAppManager" \
+            --user-agent="Mozilla/5.0 (Linux; Android 12; Google TV Build/STTE.231215.005) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.162 Safari/537.36 CrKey/1.56.500000 Large Screen" \
             "file:///data/tv/www/index.html" >/tmp/tv_chromium.log 2>&1
         sleep 1
     done
