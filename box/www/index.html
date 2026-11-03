@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  Zero-bloat TV Browser Launcher.
+  Navigation is 100% native: Chromium runs with --enable-spatial-navigation,
+  so the remote's arrow keys move focus between the input/tiles and OK opens them.
+-->
+<style>
+  html,body{margin:0;height:100%;background:#0b0b0f;color:#f2f2f5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  main{padding:60px 80px;box-sizing:border-box}
+  h1{font-size:32px;font-weight:400;color:#9a9aa6;margin:0 0 32px;letter-spacing:1px}
+  .search-box{margin-bottom:40px}
+  .search-box form{display:flex;gap:16px;max-width:800px}
+  .search-box input{flex:1;height:56px;padding:0 24px;border-radius:14px;border:3px solid #2a2a36;
+    background:#16161f;color:#fff;font-size:22px;outline:none;box-sizing:border-box}
+  .search-box input:focus{border-color:#38bdf8;background:#1e1e2d}
+  .search-box button{height:56px;padding:0 32px;border-radius:14px;border:3px solid transparent;
+    background:#38bdf8;color:#000;font-size:20px;font-weight:600;cursor:pointer}
+  .search-box button:focus{border-color:#fff;outline:none}
+  .grid{display:flex;flex-wrap:wrap;gap:28px}
+  a{display:flex;flex-direction:column;justify-content:flex-end;box-sizing:border-box;
+    width:320px;height:180px;padding:24px;border-radius:18px;background:#16161f;
+    color:#f2f2f5;text-decoration:none;font-size:30px;font-weight:500;border:3px solid #2a2a36}
+  a small{display:block;margin-top:8px;font-size:18px;color:#8d8d99;font-weight:400}
+  a:focus{outline:none;border-color:#38bdf8;background:#242436}
+  .hint{position:fixed;left:80px;bottom:32px;font-size:18px;color:#6b6b77}
+</style>
+<script>
+function onGo(e){
+  var q=document.getElementById('q').value.trim();
+  if(!q){e.preventDefault();return;}
+  if(/^(https?:\/\/|[a-z0-9-]+\.[a-z]{2,})/i.test(q)){
+    e.preventDefault();
+    location.href=/^https?:\/\//i.test(q)?q:'https://'+q;
+  }
+}
+</script>
+</head>
+<body>
+<main>
+  <h1>WEB BROWSER</h1>
+  <div class="search-box">
+    <form action="https://www.google.com/search" method="get" onsubmit="onGo(event)">
+      <input type="text" id="q" name="q" placeholder="Search Google or enter web address..." autofocus>
+      <button type="submit">Go</button>
+    </form>
+  </div>
+  <div class="grid" id="g">
+    <a href="https://www.youtube.com/tv">YouTube TV<small>youtube.com/tv</small></a>
+    <a href="https://cinejoy.pk/">Cinejoy<small>cinejoy.pk</small></a>
+    <a href="https://www.google.com/">Google<small>google.com</small></a>
+  </div>
+</main>
+<div class="hint">Arrows navigate &middot; OK opens &middot; BACK returns</div>
+</body>
+</html>
