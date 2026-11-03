@@ -2,28 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Smart TV Hub</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CleanYourTV</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!--
-  Zero-Bloat Next-Gen Smart TV Launcher for Aceconn Pi+ 4K STB.
-  Features:
-  - Apple TV / Android TV inspired dark glassmorphic interface.
-  - Native spatial navigation: arrow keys move focus seamlessly with glowing focus states.
-  - Live digital clock, 4K UHD 60Hz badge, and network status.
-  - Fast search capsule supporting Google search and direct URL entry.
-  - High-res branded cards for YouTube TV (4K), Cinejoy (4K UHD), Google Search, and VidBinge.
+  CleanYourTV Minimalist Launcher for Aceconn Pi+ 4K STB.
+  Faithfully adapted from Gathin23/cleanyourtv design architecture:
+  - Pure #000000 canvas with zero bloat and zero background CPU usage.
+  - Authentic typography: Thin clock, greeting, and date.
+  - Floating frosted pill top buttons: Wi-Fi status, Search, and Settings.
+  - Apple TV style top shelf with focused app title & ambient color glow.
+  - Clean floating dock with rounded band and high-performance spring focus physics.
+  - App catalog grid that slides up smoothly on down arrow.
+  - Fast native spatial navigation + IR Remote EXIT/BACK/HOME support.
 -->
 <style>
   :root {
-    --bg-base: #07090e;
-    --surface-glass: rgba(255, 255, 255, 0.05);
-    --surface-border: rgba(255, 255, 255, 0.1);
-    --surface-glass-focus: rgba(255, 255, 255, 0.12);
-    --accent-cyan: #38bdf8;
-    --accent-glow: rgba(56, 189, 248, 0.5);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --bg: #000000;
+    --text: #f5f5f7;
+    --dim: rgba(245, 245, 247, 0.6);
+    --fill: rgba(255, 255, 255, 0.08);
+    --edge: rgba(255, 255, 255, 0.15);
+    --glass-focus: rgba(255, 255, 255, 0.22);
+    --cols: 5;
+    --tw: 290px;
+    --th: 163px;
+    --ease: cubic-bezier(0.22, 0.8, 0.2, 1);
+    --spring: cubic-bezier(0.34, 1.3, 0.64, 1);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,419 +36,571 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: var(--bg-base);
-    background-image:
-      radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.12) 0%, transparent 40%),
-      radial-gradient(circle at 85% 25%, rgba(168, 85, 247, 0.14) 0%, transparent 45%),
-      radial-gradient(circle at 50% 90%, rgba(30, 58, 138, 0.15) 0%, transparent 50%),
-      linear-gradient(180deg, #07090e 0%, #0d111a 100%);
-    color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #000000;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     user-select: none;
     -webkit-font-smoothing: antialiased;
   }
 
-  .shell {
+  #stage {
+    position: fixed;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  /* Ambient Glow Layer */
+  #ambient {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    transition: background 0.6s ease;
+    z-index: 1;
+  }
+
+  /* Sliding Content Plane */
+  #content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1400px;
+    transition: transform 0.45s var(--ease);
+    z-index: 2;
+  }
+
+  /* Top Clock & Greeting */
+  #hello {
+    position: absolute;
+    left: 80px;
+    top: 60px;
+  }
+
+  #greet {
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--dim);
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+
+  #time {
+    font-size: 96px;
+    font-weight: 200;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    color: #ffffff;
+  }
+
+  #date {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Top Right Navigation Pills */
+  #top {
+    position: absolute;
+    right: 80px;
+    top: 64px;
+    display: flex;
+    gap: 14px;
+    z-index: 10;
+  }
+
+  .pill {
+    height: 48px;
+    padding: 0 24px;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 500;
+    background: var(--fill);
+    border: 1px solid var(--edge);
+    color: var(--text);
+    text-decoration: none;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.25s var(--spring);
+  }
+
+  .pill svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .pill:focus {
+    background: var(--glass-focus);
+    border-color: #ffffff;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.45);
+    transform: scale(1.06);
+    color: #ffffff;
+  }
+
+  /* Top Shelf (Hero Title of focused tile) */
+  #shelf {
+    position: absolute;
+    left: 80px;
+    top: 360px;
+    max-width: 1600px;
+    transition: opacity 0.25s ease;
+  }
+
+  #st {
+    font-size: 72px;
+    font-weight: 700;
+    letter-spacing: -1.2px;
+    color: #ffffff;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #sc {
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--dim);
+    margin-top: 8px;
+    letter-spacing: 0.2px;
+  }
+
+  /* CleanYourTV Dock Band */
+  #band {
+    position: absolute;
+    left: 80px;
+    top: 520px;
+    display: flex;
+    gap: 20px;
+    padding: 16px 20px;
+    border-radius: 36px;
+    background: var(--fill);
+    border: 1px solid var(--edge);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .dtile {
+    position: relative;
+    width: 210px;
+    height: 120px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    padding: 48px 72px;
-    justify-content: space-between;
-  }
-
-  /* --- Top Header Bar --- */
-  header {
-    display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding-bottom: 24px;
+    justify-content: center;
+    gap: 10px;
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    outline: none;
+    cursor: pointer;
+    transition: transform 0.25s var(--spring), background 0.2s, border-color 0.2s, box-shadow 0.2s;
   }
 
-  .brand {
+  .dtile svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .dtile:focus {
+    transform: translateY(-8px) scale(1.08);
+    background: var(--glass-focus);
+    border-color: #ffffff;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 28px var(--tile-glow, rgba(56, 189, 248, 0.6));
+    color: #ffffff;
+  }
+
+  /* App Library Grid (Slides up when scrolling down) */
+  #grid-section {
+    position: absolute;
+    left: 80px;
+    top: 730px;
+    width: 1760px;
+  }
+
+  .grid-header {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 18px;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 24px;
+  }
+
+  .gtile {
+    position: relative;
+    height: 160px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
-    align-items: center;
-    gap: 16px;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    text-decoration: none;
+    color: var(--text);
+    outline: none;
+    transition: transform 0.25s var(--spring), background 0.2s, border-color 0.2s, box-shadow 0.2s;
   }
 
-  .brand-icon {
+  .gtile-icon {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
+    background: rgba(255, 255, 255, 0.08);
   }
 
-  .brand-icon svg {
+  .gtile-icon svg {
     width: 26px;
     height: 26px;
-    fill: #ffffff;
   }
 
-  .brand-text h1 {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    color: #ffffff;
-  }
-
-  .brand-text span {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-  }
-
-  .status-cluster {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .badge-4k {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(56, 189, 248, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    color: #7dd3fc;
-    padding: 6px 14px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
-  .badge-4k .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #22c55e;
-    box-shadow: 0 0 8px #22c55e;
-  }
-
-  .clock-display {
-    text-align: right;
-  }
-
-  .clock-time {
-    font-size: 24px;
-    font-weight: 600;
-    color: #f1f5f9;
-    letter-spacing: 0.5px;
-  }
-
-  .clock-date {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-
-  /* --- Search Bar Capsule --- */
-  .search-section {
-    margin: 8px 0 36px;
-  }
-
-  .search-form {
-    display: flex;
-    align-items: center;
-    background: var(--surface-glass);
-    border: 2px solid var(--surface-border);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-radius: 20px;
-    padding: 6px 12px 6px 24px;
-    max-width: 900px;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .search-icon {
-    width: 26px;
-    height: 26px;
-    margin-right: 16px;
-    color: var(--text-muted);
-    flex-shrink: 0;
-  }
-
-  .search-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #ffffff;
+  .gtile-name {
     font-size: 20px;
-    font-weight: 400;
-    font-family: inherit;
-    padding: 12px 0;
+    font-weight: 600;
+    color: #ffffff;
   }
 
-  .search-input::placeholder {
-    color: #64748b;
-    font-weight: 400;
+  .gtile-sub {
+    font-size: 13px;
+    color: var(--dim);
   }
 
-  .search-input:focus {
+  .gtile:focus {
+    transform: translateY(-8px) scale(1.06);
+    background: var(--glass-focus);
+    border-color: #ffffff;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 28px var(--tile-glow, rgba(56, 189, 248, 0.6));
+  }
+
+  /* Bottom Remote Hint */
+  #hint {
+    position: absolute;
+    left: 80px;
+    bottom: 28px;
+    font-size: 16px;
+    color: var(--dim);
+    letter-spacing: 0.5px;
+    z-index: 10;
+  }
+
+  /* Minimal Search Dialog Overlay */
+  #search-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    z-index: 99;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .search-card {
+    width: 900px;
+    background: #111218;
+    border: 1px solid var(--edge);
+    border-radius: 32px;
+    padding: 48px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+  }
+
+  .search-card h2 {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: #ffffff;
+  }
+
+  .search-input-box {
+    display: flex;
+    gap: 16px;
+  }
+
+  .search-input-box input {
+    flex: 1;
+    height: 60px;
+    padding: 0 24px;
+    border-radius: 18px;
+    background: #1c1d25;
+    border: 2px solid #2e303d;
+    color: #ffffff;
+    font-size: 22px;
     outline: none;
   }
 
-  .search-btn {
-    background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
-    border: 2px solid transparent;
-    color: #ffffff;
-    font-size: 16px;
+  .search-input-box input:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+  }
+
+  .search-input-box button {
+    height: 60px;
+    padding: 0 32px;
+    border-radius: 18px;
+    background: #38bdf8;
+    color: #000;
+    font-size: 20px;
     font-weight: 600;
-    padding: 12px 28px;
-    border-radius: 14px;
+    border: none;
     cursor: pointer;
     outline: none;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .search-form:focus-within {
-    border-color: #38bdf8;
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 30px rgba(56, 189, 248, 0.35);
-  }
-
-  .search-btn:focus {
-    border-color: #ffffff;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
-    transform: scale(1.05);
-  }
-
-  /* --- App Tiles Section --- */
-  .section-label {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: #64748b;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 28px;
-  }
-
-  .card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 250px;
-    padding: 28px;
-    border-radius: 24px;
-    text-decoration: none;
-    color: var(--text-primary);
-    background: rgba(18, 22, 34, 0.85);
-    border: 2px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    overflow: hidden;
-    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 0.22s ease,
-                box-shadow 0.22s ease,
-                background-color 0.22s ease;
-    outline: none;
-  }
-
-  .card-glow {
-    position: absolute;
-    inset: 0;
-    opacity: 0.15;
-    transition: opacity 0.22s ease;
-    pointer-events: none;
-  }
-
-  .card-top {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-  }
-
-  .app-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-  }
-
-  .app-pill {
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    background: rgba(255, 255, 255, 0.1);
-    color: #cbd5e1;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-  }
-
-  .card-bottom {
-    position: relative;
-    z-index: 2;
-  }
-
-  .card-title {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    color: #ffffff;
-    margin-bottom: 6px;
-  }
-
-  .card-subtitle {
-    font-size: 14px;
-    font-weight: 400;
-    color: #94a3b8;
-    line-height: 1.3;
-  }
-
-  /* Specific Card Themes */
-  .card-youtube .card-glow {
-    background: radial-gradient(circle at top left, #ef4444 0%, transparent 70%);
-  }
-  .card-youtube .app-icon {
-    background: #ff0000;
-  }
-  .card-youtube .app-pill {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.4);
-    color: #fca5a5;
-  }
-
-  .card-cinejoy .card-glow {
-    background: radial-gradient(circle at top left, #a855f7 0%, transparent 70%);
-  }
-  .card-cinejoy .app-icon {
-    background: linear-gradient(135deg, #9333ea 0%, #4f46e5 100%);
-  }
-  .card-cinejoy .app-pill {
-    background: rgba(168, 85, 247, 0.2);
-    border-color: rgba(168, 85, 247, 0.4);
-    color: #d8b4fe;
-  }
-
-  .card-google .card-glow {
-    background: radial-gradient(circle at top left, #38bdf8 0%, transparent 70%);
-  }
-  .card-google .app-icon {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-  }
-  .card-google .app-pill {
-    background: rgba(56, 189, 248, 0.2);
-    border-color: rgba(56, 189, 248, 0.4);
-    color: #7dd3fc;
-  }
-
-  .card-vidbinge .card-glow {
-    background: radial-gradient(circle at top left, #f59e0b 0%, transparent 70%);
-  }
-  .card-vidbinge .app-icon {
-    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  }
-  .card-vidbinge .app-pill {
-    background: rgba(245, 158, 11, 0.2);
-    border-color: rgba(245, 158, 11, 0.4);
-    color: #fcd34d;
-  }
-
-  /* --- Focus States (Spatial Navigation) --- */
-  .card:focus {
-    transform: translateY(-10px) scale(1.04);
-    border-color: #38bdf8;
-    background: rgba(26, 33, 52, 0.95);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7),
-                0 0 35px var(--accent-glow);
-  }
-
-  .card:focus .card-glow {
-    opacity: 0.45;
-  }
-
-  .card:focus .card-title {
-    color: #ffffff;
-  }
-
-  .card:focus .card-subtitle {
-    color: #e2e8f0;
-  }
-
-  .card-youtube:focus {
-    border-color: #ff4d4d;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 35px rgba(239, 68, 68, 0.6);
-  }
-
-  .card-cinejoy:focus {
-    border-color: #c084fc;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 35px rgba(168, 85, 247, 0.65);
-  }
-
-  .card-vidbinge:focus {
-    border-color: #fbbf24;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 35px rgba(245, 158, 11, 0.6);
-  }
-
-  /* --- Bottom Remote Bar --- */
-  footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .hint-row {
-    display: flex;
-    align-items: center;
-    gap: 28px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-muted);
-  }
-
-  .hint-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .key-cap {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    padding: 3px 8px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #cbd5e1;
-    letter-spacing: 0.5px;
-  }
-
-  .system-stats {
-    font-size: 13px;
-    color: #64748b;
-    font-weight: 500;
+  .search-input-box button:focus {
+    box-shadow: 0 0 20px #ffffff;
   }
 </style>
+</head>
+<body>
+<div id="stage">
+  <div id="ambient"></div>
+
+  <!-- Top Right Navigation Pills -->
+  <div id="top">
+    <button class="pill" id="pill-search" onclick="openSearch()">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <span>Search</span>
+    </button>
+    <div class="pill" id="pill-wifi" tabindex="0">
+      <svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+      <span>Wi-Fi &bull; 4K60</span>
+    </div>
+    <div class="pill" id="pill-settings" tabindex="0" onclick="alert('Display: 3840x2160_60 | BigFish VDEC: Hardware Ready | Zero-Bloat OS')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      <span>Settings</span>
+    </div>
+  </div>
+
+  <!-- Main Content Structure -->
+  <div id="content">
+    <!-- Clock & Greeting -->
+    <div id="hello">
+      <div id="greet">Good evening</div>
+      <div id="time">--:--</div>
+      <div id="date">MONDAY, NOV 3</div>
+    </div>
+
+    <!-- CleanYourTV Top Shelf -->
+    <div id="shelf">
+      <div id="st">YouTube on TV</div>
+      <div id="sc">10-Foot 4K TV Interface &bull; High-Definition Thumbnails &bull; Ad-Free</div>
+    </div>
+
+    <!-- CleanYourTV Dock Band -->
+    <div id="band">
+      <!-- YouTube TV -->
+      <a href="https://www.youtube.com/tv" class="dtile" id="tile-youtube"
+         data-title="YouTube on TV"
+         data-caption="10-Foot 4K TV Interface &bull; High-Definition Thumbnails &bull; Ad-Free"
+         data-glow="rgba(239, 68, 68, 0.45)"
+         style="--tile-glow: rgba(239, 68, 68, 0.8);">
+        <svg viewBox="0 0 24 24" fill="#ef4444">
+          <path d="M21.58 7.19a2.7 2.7 0 0 0-1.9-1.9C18 4.8 12 4.8 12 4.8s-6 0-7.68.49a2.7 2.7 0 0 0-1.9 1.9A28.4 28.4 0 0 0 2 12a28.4 28.4 0 0 0 .42 4.81 2.7 2.7 0 0 0 1.9 1.9c1.68.49 7.68.49 7.68.49s6 0 7.68-.49a2.7 2.7 0 0 0 1.9-1.9A28.4 28.4 0 0 0 22 12a28.4 28.4 0 0 0-.42-4.81zM9.8 15.35V8.65L15.6 12l-5.8 3.35z"/>
+        </svg>
+        <span>YouTube TV</span>
+      </a>
+
+      <!-- Cinejoy 4K -->
+      <a href="https://cinejoy.pk/" class="dtile" id="tile-cinejoy"
+         data-title="Cinejoy 4K Cinema"
+         data-caption="Stream latest movies & series &bull; Native 4K clusters &bull; Closed captions"
+         data-glow="rgba(168, 85, 247, 0.45)"
+         style="--tile-glow: rgba(168, 85, 247, 0.8);">
+        <svg viewBox="0 0 24 24" fill="#a855f7">
+          <path d="M19.82 2H4.18C2.97 2 2 2.97 2 4.18v15.64C2 21.03 2.97 22 4.18 22h15.64c1.21 0 2.18-.97 2.18-2.18V4.18C22 2.97 21.03 2 19.82 2zM7 4h2v2H7V4zm-3 0h2v2H4V4zm0 4h2v2H4V8zm0 4h2v2H4v-2zm0 4h2v2H4v-2zm16 4.82c0 .65-.53 1.18-1.18 1.18H4.18c-.65 0-1.18-.53-1.18-1.18V18h2v2h2v-2h10v2h2v-2h1v2.82zm-3-4.82h2v2h-2v-2zm0-4h2v2h-2v-2zm0-4h2v2h-2V8zm0-4h2v2h-2V4zm-7 11V9l5 3-5 3z"/>
+        </svg>
+        <span>Cinejoy 4K</span>
+      </a>
+
+      <!-- VidBinge -->
+      <a href="https://vidbinge.com/" class="dtile" id="tile-vidbinge"
+         data-title="VidBinge Streaming"
+         data-caption="Clean streaming interface &bull; Fast servers &bull; Zero bloat"
+         data-glow="rgba(245, 158, 11, 0.45)"
+         style="--tile-glow: rgba(245, 158, 11, 0.8);">
+        <svg viewBox="0 0 24 24" fill="#f59e0b">
+          <path d="M4 6.47L5.76 10H20v8H4V6.47M22 4h-4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4z"/>
+        </svg>
+        <span>VidBinge</span>
+      </a>
+
+      <!-- RiveStream -->
+      <a href="https://rivestream.live/" class="dtile" id="tile-rive"
+         data-title="RiveStream 4K"
+         data-caption="Multi-source movie and television player &bull; Subtitles &bull; Clean UI"
+         data-glow="rgba(16, 185, 129, 0.45)"
+         style="--tile-glow: rgba(16, 185, 129, 0.8);">
+        <svg viewBox="0 0 24 24" fill="#10b981">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+        </svg>
+        <span>RiveStream</span>
+      </a>
+
+      <!-- Google Web -->
+      <a href="https://www.google.com/" class="dtile" id="tile-google"
+         data-title="Google Web"
+         data-caption="Search the global web &bull; Wikipedia, news, and online portals"
+         data-glow="rgba(56, 189, 248, 0.45)"
+         style="--tile-glow: rgba(56, 189, 248, 0.8);">
+        <svg viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+        </svg>
+        <span>Google</span>
+      </a>
+    </div>
+
+    <!-- App Catalog Grid (Discovered on Down Arrow) -->
+    <div id="grid-section">
+      <div class="grid-header">Quick Access Channels</div>
+      <div id="grid">
+        <a href="https://cinejoy.pk/movies" class="gtile"
+           data-title="Cinejoy Movies Catalog"
+           data-caption="Browse thousands of full-length films across all genres"
+           data-glow="rgba(168, 85, 247, 0.45)">
+          <div class="gtile-icon"><svg viewBox="0 0 24 24" fill="#a855f7"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4z"/></svg></div>
+          <div><div class="gtile-name">Movies</div><div class="gtile-sub">Cinejoy Library</div></div>
+        </a>
+
+        <a href="https://cinejoy.pk/series" class="gtile"
+           data-title="Cinejoy TV Series"
+           data-caption="Binge popular TV seasons and complete episodes"
+           data-glow="rgba(168, 85, 247, 0.45)">
+          <div class="gtile-icon"><svg viewBox="0 0 24 24" fill="#a855f7"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
+          <div><div class="gtile-name">TV Shows</div><div class="gtile-sub">Series & Episodes</div></div>
+        </a>
+
+        <a href="https://brocoflix.com/" class="gtile"
+           data-title="BrocoFlix Streaming"
+           data-caption="Alternative fast streaming catalog with instant playback"
+           data-glow="rgba(56, 189, 248, 0.45)">
+          <div class="gtile-icon"><svg viewBox="0 0 24 24" fill="#38bdf8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+          <div><div class="gtile-name">BrocoFlix</div><div class="gtile-sub">Fast Web Player</div></div>
+        </a>
+
+        <a href="https://en.wikipedia.org/" class="gtile"
+           data-title="Wikipedia Encyclopedia"
+           data-caption="Explore global history, science, cinema, and encyclopedia articles"
+           data-glow="rgba(255, 255, 255, 0.45)">
+          <div class="gtile-icon"><svg viewBox="0 0 24 24" fill="#ffffff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5z"/></svg></div>
+          <div><div class="gtile-name">Wikipedia</div><div class="gtile-sub">Free Encyclopedia</div></div>
+        </a>
+
+        <a href="https://fast.com/" class="gtile"
+           data-title="Fast.com Internet Speed"
+           data-caption="Test your TV's current network bandwidth and streaming latency"
+           data-glow="rgba(34, 197, 94, 0.45)">
+          <div class="gtile-icon"><svg viewBox="0 0 24 24" fill="#22c55e"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg></div>
+          <div><div class="gtile-name">Fast.com</div><div class="gtile-sub">Bandwidth Test</div></div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div id="hint">Arrows move &bull; OK selects &bull; EXIT / BACK returns home &bull; ZERO BLOAT 4K</div>
+</div>
+
+<!-- Search Modal -->
+<div id="search-modal">
+  <div class="search-card">
+    <h2>Search Google or Open Web URL</h2>
+    <form action="https://www.google.com/search" method="get" onsubmit="onSearchGo(event)" class="search-input-box">
+      <input type="text" id="sq" name="q" placeholder="Type a search query or website (e.g. reddit.com)...">
+      <button type="submit">Go</button>
+    </form>
+  </div>
+</div>
+
 <script>
-function onGo(e) {
-  var q = document.getElementById('q').value.trim();
+function updateClock() {
+  const now = new Date();
+  let h = now.getHours();
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const greetEl = document.getElementById('greet');
+  if (greetEl) {
+    if (h < 12) greetEl.textContent = 'Good morning';
+    else if (h < 18) greetEl.textContent = 'Good afternoon';
+    else greetEl.textContent = 'Good evening';
+  }
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const timeEl = document.getElementById('time');
+  if (timeEl) timeEl.textContent = `${h}:${m} ${ampm}`;
+
+  const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const dateEl = document.getElementById('date');
+  if (dateEl) dateEl.textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+}
+
+function updateHero(el) {
+  if (!el) return;
+  const t = el.getAttribute('data-title');
+  const c = el.getAttribute('data-caption');
+  const glow = el.getAttribute('data-glow') || 'rgba(56, 189, 248, 0.45)';
+  if (t) document.getElementById('st').textContent = t;
+  if (c) document.getElementById('sc').textContent = c;
+  const ambient = document.getElementById('ambient');
+  if (ambient) {
+    ambient.style.background = `radial-gradient(1100px 750px at 30% 35%, ${glow}, transparent 70%)`;
+  }
+
+  // Slide content plane up if focusing on lower grid
+  const content = document.getElementById('content');
+  if (el.classList.contains('gtile')) {
+    content.style.transform = 'translateY(-320px)';
+  } else {
+    content.style.transform = 'translateY(0px)';
+  }
+}
+
+function openSearch() {
+  const modal = document.getElementById('search-modal');
+  modal.style.display = 'flex';
+  const inp = document.getElementById('sq');
+  inp.focus();
+}
+
+function closeSearch() {
+  const modal = document.getElementById('search-modal');
+  modal.style.display = 'none';
+  const yt = document.getElementById('tile-youtube');
+  if (yt) yt.focus();
+}
+
+function onSearchGo(e) {
+  const q = document.getElementById('sq').value.trim();
   if (!q) { e.preventDefault(); return; }
   if (/^(https?:\/\/|[a-z0-9-]+\.[a-z]{2,})/i.test(q)) {
     e.preventDefault();
@@ -452,163 +608,33 @@ function onGo(e) {
   }
 }
 
-function updateClock() {
-  var now = new Date();
-  var hours = now.getHours();
-  var minutes = now.getMinutes();
-  var ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12;
-  var minStr = minutes < 10 ? '0' + minutes : minutes;
-  var clockEl = document.getElementById('clock-time');
-  if (clockEl) clockEl.innerText = hours + ':' + minStr + ' ' + ampm;
+// Key listener for Search Modal (ESC to close)
+window.addEventListener('keydown', function(e) {
+  if (e.keyCode === 27 || e.key === 'Escape') {
+    const modal = document.getElementById('search-modal');
+    if (modal && modal.style.display === 'flex') {
+      closeSearch();
+      e.preventDefault();
+    }
+  }
+});
 
-  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var dateEl = document.getElementById('clock-date');
-  if (dateEl) dateEl.innerText = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
-}
+// Focus tracking
+document.addEventListener('focusin', function(e) {
+  if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-title')) {
+    updateHero(e.target);
+  }
+});
 
 window.addEventListener('DOMContentLoaded', function() {
   updateClock();
   setInterval(updateClock, 1000);
+  const yt = document.getElementById('tile-youtube');
+  if (yt) {
+    yt.focus();
+    updateHero(yt);
+  }
 });
 </script>
-</head>
-<body>
-<div class="shell">
-  <!-- Top Status Header -->
-  <header>
-    <div class="brand">
-      <div class="brand-icon">
-        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/></svg>
-      </div>
-      <div class="brand-text">
-        <h1>Aceconn Ultra TV</h1>
-        <span>Zero-Bloat 4K Streaming OS</span>
-      </div>
-    </div>
-    <div class="status-cluster">
-      <div class="badge-4k">
-        <div class="dot"></div>
-        <span>4K UHD &bull; 60 FPS</span>
-      </div>
-      <div class="clock-display">
-        <div class="clock-time" id="clock-time">--:-- --</div>
-        <div class="clock-date" id="clock-date">--------, --- --</div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Search & URL Bar -->
-  <div class="search-section">
-    <form class="search-form" action="https://www.google.com/search" method="get" onsubmit="onGo(event)">
-      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-      <input type="text" id="q" name="q" class="search-input" placeholder="Search Google or enter web address..." autofocus>
-      <button type="submit" class="search-btn">Go</button>
-    </form>
-  </div>
-
-  <!-- Featured Apps Section -->
-  <div class="apps-section">
-    <div class="section-label">Featured Channels & Apps</div>
-    <div class="grid">
-      <!-- YouTube TV Card -->
-      <a href="https://www.youtube.com/tv" class="card card-youtube">
-        <div class="card-glow"></div>
-        <div class="card-top">
-          <div class="app-icon">
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="#ffffff">
-              <path d="M21.58 7.19a2.7 2.7 0 0 0-1.9-1.9C18 4.8 12 4.8 12 4.8s-6 0-7.68.49a2.7 2.7 0 0 0-1.9 1.9A28.4 28.4 0 0 0 2 12a28.4 28.4 0 0 0 .42 4.81 2.7 2.7 0 0 0 1.9 1.9c1.68.49 7.68.49 7.68.49s6 0 7.68-.49a2.7 2.7 0 0 0 1.9-1.9A28.4 28.4 0 0 0 22 12a28.4 28.4 0 0 0-.42-4.81zM9.8 15.35V8.65L15.6 12l-5.8 3.35z"/>
-            </svg>
-          </div>
-          <span class="app-pill">4K &bull; Ad-Free</span>
-        </div>
-        <div class="card-bottom">
-          <div class="card-title">YouTube TV</div>
-          <div class="card-subtitle">Watch 4K HD videos, channels, and live streams without ads.</div>
-        </div>
-      </a>
-
-      <!-- Cinejoy Card -->
-      <a href="https://cinejoy.pk/" class="card card-cinejoy">
-        <div class="card-glow"></div>
-        <div class="card-top">
-          <div class="app-icon">
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="#ffffff">
-              <path d="M19.82 2H4.18C2.97 2 2 2.97 2 4.18v15.64C2 21.03 2.97 22 4.18 22h15.64c1.21 0 2.18-.97 2.18-2.18V4.18C22 2.97 21.03 2 19.82 2zM7 4h2v2H7V4zm-3 0h2v2H4V4zm0 4h2v2H4V8zm0 4h2v2H4v-2zm0 4h2v2H4v-2zm16 4.82c0 .65-.53 1.18-1.18 1.18H4.18c-.65 0-1.18-.53-1.18-1.18V18h2v2h2v-2h10v2h2v-2h1v2.82zm-3-4.82h2v2h-2v-2zm0-4h2v2h-2v-2zm0-4h2v2h-2V8zm0-4h2v2h-2V4zm-7 11V9l5 3-5 3z"/>
-            </svg>
-          </div>
-          <span class="app-pill">4K Cinema</span>
-        </div>
-        <div class="card-bottom">
-          <div class="card-title">Cinejoy 4K</div>
-          <div class="card-subtitle">Stream latest movies and series in full 4K Ultra HD.</div>
-        </div>
-      </a>
-
-      <!-- Google Web Search Card -->
-      <a href="https://www.google.com/" class="card card-google">
-        <div class="card-glow"></div>
-        <div class="card-top">
-          <div class="app-icon">
-            <svg viewBox="0 0 24 24" width="32" height="32">
-              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
-              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-            </svg>
-          </div>
-          <span class="app-pill">Global Web</span>
-        </div>
-        <div class="card-bottom">
-          <div class="card-title">Google Web</div>
-          <div class="card-subtitle">Search the global web, Wikipedia, articles, and websites.</div>
-        </div>
-      </a>
-
-      <!-- VidBinge Card -->
-      <a href="https://vidbinge.com/" class="card card-vidbinge">
-        <div class="card-glow"></div>
-        <div class="card-top">
-          <div class="app-icon">
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="#ffffff">
-              <path d="M4 6.47L5.76 10H20v8H4V6.47M22 4h-4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4z"/>
-            </svg>
-          </div>
-          <span class="app-pill">HD Stream</span>
-        </div>
-        <div class="card-bottom">
-          <div class="card-title">VidBinge</div>
-          <div class="card-subtitle">Fast, lightweight clean streaming player for movies and TV.</div>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- Bottom Navigation Guidance -->
-  <footer>
-    <div class="hint-row">
-      <div class="hint-item">
-        <span class="key-cap">&larr; &uarr; &darr; &rarr;</span>
-        <span>Navigate</span>
-      </div>
-      <div class="hint-item">
-        <span class="key-cap">OK</span>
-        <span>Select / Open</span>
-      </div>
-      <div class="hint-item">
-        <span class="key-cap">BACK</span>
-        <span>Return Home</span>
-      </div>
-    </div>
-    <div class="system-stats">
-      HiSilicon Hi3798MV300 &bull; Mali-450 GPU &bull; 1.6 GHz Performance Mode
-    </div>
-  </footer>
-</div>
 </body>
 </html>

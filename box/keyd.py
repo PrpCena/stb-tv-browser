@@ -27,7 +27,11 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cdp  # noqa: E402
 
-BACK_KEYS = {1, 14, 158, 175}
+# Remote Keys:
+# 1 (ESC), 14 (BACKSPACE), 158 (KEY_BACK), 174 (KEY_EXIT), 175 (KEY_XFER)
+BACK_KEYS = {1, 14, 158, 174, 175}
+# Direct Home Keys: 102 (KEY_HOME), 139 (KEY_MENU), 398 (RED)
+HOME_KEYS = {102, 139, 398}
 DEV = "/dev/input/event0"
 EVSZ = struct.calcsize("llHHi")
 
@@ -82,12 +86,31 @@ BOOSTER_JS = """(function() {
       .app-shell > div:first-child {
         max-height: 72px !important;
       }
+      /* Comprehensive uBlock-style Ad Removal */
       ytlr-thumbnail-details[bg*="googlesyndication"],
       ytlr-banner-renderer,
       .ytp-ad-overlay-container,
       .video-ads,
-      .ad-showing .ytp-ad-text {
+      .ad-showing .ytp-ad-text,
+      iframe[src*="doubleclick"],
+      iframe[src*="ad"],
+      iframe[src*="googleads"],
+      [id*="google_ads"],
+      [class*="ad-banner"],
+      [class*="adsbygoogle"],
+      [id*="banner-ad"],
+      [class*="sponsored"],
+      [id*="popcash"],
+      [id*="popads"],
+      .ad-container,
+      .native-ad,
+      #ad-banner {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        height: 0 !important;
+        width: 0 !important;
       }
     `;
     parent.appendChild(style);
@@ -273,11 +296,19 @@ def main():
                 buf = os.read(ev_fd, EVSZ)
                 if len(buf) >= EVSZ:
                     _, _, etype, code, val = struct.unpack("llHHi", buf)
-                    if etype == 1 and val == 1 and code in BACK_KEYS:
-                        try:
-                            cdp.evaluate(BACK_JS)
-                        except Exception:
-                            pass
+                    if etype == 1 and val == 1:
+                        # Direct Home Key: return immediately to CleanYourTV launcher
+                        if code in HOME_KEYS:
+                            try:
+                                cdp.evaluate("window.location.href = 'file:///data/tv/www/index.html';")
+                            except Exception:
+                                pass
+                        # Back / Exit Key: intelligent history / fullscreen / home return
+                        elif code in BACK_KEYS:
+                            try:
+                                cdp.evaluate(BACK_JS)
+                            except Exception:
+                                pass
             except OSError:
                 try:
                     os.close(ev_fd)
