@@ -2,60 +2,613 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Home</title>
+<title>Smart TV Hub</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--
-  Zero-bloat TV Browser Launcher.
-  Navigation is 100% native: Chromium runs with --enable-spatial-navigation,
-  so the remote's arrow keys move focus between the input/tiles and OK opens them.
+  Zero-Bloat Next-Gen Smart TV Launcher for Aceconn Pi+ 4K STB.
+  Features:
+  - Apple TV / Android TV inspired dark glassmorphic interface.
+  - Native spatial navigation: arrow keys move focus seamlessly with glowing focus states.
+  - Live digital clock, 4K UHD 60Hz badge, and network status.
+  - Fast search capsule supporting Google search and direct URL entry.
+  - High-res branded cards for YouTube TV (4K), Cinejoy (4K UHD), Google Search, and VidBinge.
 -->
 <style>
-  html,body{margin:0;height:100%;background:#0b0b0f;color:#f2f2f5;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  main{padding:60px 80px;box-sizing:border-box}
-  h1{font-size:32px;font-weight:400;color:#9a9aa6;margin:0 0 32px;letter-spacing:1px}
-  .search-box{margin-bottom:40px}
-  .search-box form{display:flex;gap:16px;max-width:800px}
-  .search-box input{flex:1;height:56px;padding:0 24px;border-radius:14px;border:3px solid #2a2a36;
-    background:#16161f;color:#fff;font-size:22px;outline:none;box-sizing:border-box}
-  .search-box input:focus{border-color:#38bdf8;background:#1e1e2d}
-  .search-box button{height:56px;padding:0 32px;border-radius:14px;border:3px solid transparent;
-    background:#38bdf8;color:#000;font-size:20px;font-weight:600;cursor:pointer}
-  .search-box button:focus{border-color:#fff;outline:none}
-  .grid{display:flex;flex-wrap:wrap;gap:28px}
-  a{display:flex;flex-direction:column;justify-content:flex-end;box-sizing:border-box;
-    width:320px;height:180px;padding:24px;border-radius:18px;background:#16161f;
-    color:#f2f2f5;text-decoration:none;font-size:30px;font-weight:500;border:3px solid #2a2a36}
-  a small{display:block;margin-top:8px;font-size:18px;color:#8d8d99;font-weight:400}
-  a:focus{outline:none;border-color:#38bdf8;background:#242436}
-  .hint{position:fixed;left:80px;bottom:32px;font-size:18px;color:#6b6b77}
+  :root {
+    --bg-base: #07090e;
+    --surface-glass: rgba(255, 255, 255, 0.05);
+    --surface-border: rgba(255, 255, 255, 0.1);
+    --surface-glass-focus: rgba(255, 255, 255, 0.12);
+    --accent-cyan: #38bdf8;
+    --accent-glow: rgba(56, 189, 248, 0.5);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-base);
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.12) 0%, transparent 40%),
+      radial-gradient(circle at 85% 25%, rgba(168, 85, 247, 0.14) 0%, transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(30, 58, 138, 0.15) 0%, transparent 50%),
+      linear-gradient(180deg, #07090e 0%, #0d111a 100%);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 48px 72px;
+    justify-content: space-between;
+  }
+
+  /* --- Top Header Bar --- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 24px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .brand-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
+  }
+
+  .brand-icon svg {
+    width: 26px;
+    height: 26px;
+    fill: #ffffff;
+  }
+
+  .brand-text h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+  }
+
+  .brand-text span {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .status-cluster {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .badge-4k {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: #7dd3fc;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .badge-4k .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+  }
+
+  .clock-display {
+    text-align: right;
+  }
+
+  .clock-time {
+    font-size: 24px;
+    font-weight: 600;
+    color: #f1f5f9;
+    letter-spacing: 0.5px;
+  }
+
+  .clock-date {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* --- Search Bar Capsule --- */
+  .search-section {
+    margin: 8px 0 36px;
+  }
+
+  .search-form {
+    display: flex;
+    align-items: center;
+    background: var(--surface-glass);
+    border: 2px solid var(--surface-border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 20px;
+    padding: 6px 12px 6px 24px;
+    max-width: 900px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .search-icon {
+    width: 26px;
+    height: 26px;
+    margin-right: 16px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 400;
+    font-family: inherit;
+    padding: 12px 0;
+  }
+
+  .search-input::placeholder {
+    color: #64748b;
+    font-weight: 400;
+  }
+
+  .search-input:focus {
+    outline: none;
+  }
+
+  .search-btn {
+    background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+    border: 2px solid transparent;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .search-form:focus-within {
+    border-color: #38bdf8;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.35);
+  }
+
+  .search-btn:focus {
+    border-color: #ffffff;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+    transform: scale(1.05);
+  }
+
+  /* --- App Tiles Section --- */
+  .section-label {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+  }
+
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 250px;
+    padding: 28px;
+    border-radius: 24px;
+    text-decoration: none;
+    color: var(--text-primary);
+    background: rgba(18, 22, 34, 0.85);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.22s ease,
+                box-shadow 0.22s ease,
+                background-color 0.22s ease;
+    outline: none;
+  }
+
+  .card-glow {
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+    transition: opacity 0.22s ease;
+    pointer-events: none;
+  }
+
+  .card-top {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .app-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .app-pill {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .card-bottom {
+    position: relative;
+    z-index: 2;
+  }
+
+  .card-title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: #ffffff;
+    margin-bottom: 6px;
+  }
+
+  .card-subtitle {
+    font-size: 14px;
+    font-weight: 400;
+    color: #94a3b8;
+    line-height: 1.3;
+  }
+
+  /* Specific Card Themes */
+  .card-youtube .card-glow {
+    background: radial-gradient(circle at top left, #ef4444 0%, transparent 70%);
+  }
+  .card-youtube .app-icon {
+    background: #ff0000;
+  }
+  .card-youtube .app-pill {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+  }
+
+  .card-cinejoy .card-glow {
+    background: radial-gradient(circle at top left, #a855f7 0%, transparent 70%);
+  }
+  .card-cinejoy .app-icon {
+    background: linear-gradient(135deg, #9333ea 0%, #4f46e5 100%);
+  }
+  .card-cinejoy .app-pill {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.4);
+    color: #d8b4fe;
+  }
+
+  .card-google .card-glow {
+    background: radial-gradient(circle at top left, #38bdf8 0%, transparent 70%);
+  }
+  .card-google .app-icon {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .card-google .app-pill {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.4);
+    color: #7dd3fc;
+  }
+
+  .card-vidbinge .card-glow {
+    background: radial-gradient(circle at top left, #f59e0b 0%, transparent 70%);
+  }
+  .card-vidbinge .app-icon {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  }
+  .card-vidbinge .app-pill {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fcd34d;
+  }
+
+  /* --- Focus States (Spatial Navigation) --- */
+  .card:focus {
+    transform: translateY(-10px) scale(1.04);
+    border-color: #38bdf8;
+    background: rgba(26, 33, 52, 0.95);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7),
+                0 0 35px var(--accent-glow);
+  }
+
+  .card:focus .card-glow {
+    opacity: 0.45;
+  }
+
+  .card:focus .card-title {
+    color: #ffffff;
+  }
+
+  .card:focus .card-subtitle {
+    color: #e2e8f0;
+  }
+
+  .card-youtube:focus {
+    border-color: #ff4d4d;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 35px rgba(239, 68, 68, 0.6);
+  }
+
+  .card-cinejoy:focus {
+    border-color: #c084fc;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 35px rgba(168, 85, 247, 0.65);
+  }
+
+  .card-vidbinge:focus {
+    border-color: #fbbf24;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 35px rgba(245, 158, 11, 0.6);
+  }
+
+  /* --- Bottom Remote Bar --- */
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .hint-row {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .hint-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .key-cap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #cbd5e1;
+    letter-spacing: 0.5px;
+  }
+
+  .system-stats {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+  }
 </style>
 <script>
-function onGo(e){
-  var q=document.getElementById('q').value.trim();
-  if(!q){e.preventDefault();return;}
-  if(/^(https?:\/\/|[a-z0-9-]+\.[a-z]{2,})/i.test(q)){
+function onGo(e) {
+  var q = document.getElementById('q').value.trim();
+  if (!q) { e.preventDefault(); return; }
+  if (/^(https?:\/\/|[a-z0-9-]+\.[a-z]{2,})/i.test(q)) {
     e.preventDefault();
-    location.href=/^https?:\/\//i.test(q)?q:'https://'+q;
+    location.href = /^https?:\/\//i.test(q) ? q : 'https://' + q;
   }
 }
+
+function updateClock() {
+  var now = new Date();
+  var hours = now.getHours();
+  var minutes = now.getMinutes();
+  var ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  var minStr = minutes < 10 ? '0' + minutes : minutes;
+  var clockEl = document.getElementById('clock-time');
+  if (clockEl) clockEl.innerText = hours + ':' + minStr + ' ' + ampm;
+
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var dateEl = document.getElementById('clock-date');
+  if (dateEl) dateEl.innerText = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  updateClock();
+  setInterval(updateClock, 1000);
+});
 </script>
 </head>
 <body>
-<main>
-  <h1>WEB BROWSER</h1>
-  <div class="search-box">
-    <form action="https://www.google.com/search" method="get" onsubmit="onGo(event)">
-      <input type="text" id="q" name="q" placeholder="Search Google or enter web address..." autofocus>
-      <button type="submit">Go</button>
+<div class="shell">
+  <!-- Top Status Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>Aceconn Ultra TV</h1>
+        <span>Zero-Bloat 4K Streaming OS</span>
+      </div>
+    </div>
+    <div class="status-cluster">
+      <div class="badge-4k">
+        <div class="dot"></div>
+        <span>4K UHD &bull; 60 FPS</span>
+      </div>
+      <div class="clock-display">
+        <div class="clock-time" id="clock-time">--:-- --</div>
+        <div class="clock-date" id="clock-date">--------, --- --</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search & URL Bar -->
+  <div class="search-section">
+    <form class="search-form" action="https://www.google.com/search" method="get" onsubmit="onGo(event)">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="q" name="q" class="search-input" placeholder="Search Google or enter web address..." autofocus>
+      <button type="submit" class="search-btn">Go</button>
     </form>
   </div>
-  <div class="grid" id="g">
-    <a href="https://www.youtube.com/tv">YouTube TV<small>youtube.com/tv</small></a>
-    <a href="https://cinejoy.pk/">Cinejoy<small>cinejoy.pk</small></a>
-    <a href="https://www.google.com/">Google<small>google.com</small></a>
+
+  <!-- Featured Apps Section -->
+  <div class="apps-section">
+    <div class="section-label">Featured Channels & Apps</div>
+    <div class="grid">
+      <!-- YouTube TV Card -->
+      <a href="https://www.youtube.com/tv" class="card card-youtube">
+        <div class="card-glow"></div>
+        <div class="card-top">
+          <div class="app-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="#ffffff">
+              <path d="M21.58 7.19a2.7 2.7 0 0 0-1.9-1.9C18 4.8 12 4.8 12 4.8s-6 0-7.68.49a2.7 2.7 0 0 0-1.9 1.9A28.4 28.4 0 0 0 2 12a28.4 28.4 0 0 0 .42 4.81 2.7 2.7 0 0 0 1.9 1.9c1.68.49 7.68.49 7.68.49s6 0 7.68-.49a2.7 2.7 0 0 0 1.9-1.9A28.4 28.4 0 0 0 22 12a28.4 28.4 0 0 0-.42-4.81zM9.8 15.35V8.65L15.6 12l-5.8 3.35z"/>
+            </svg>
+          </div>
+          <span class="app-pill">4K &bull; Ad-Free</span>
+        </div>
+        <div class="card-bottom">
+          <div class="card-title">YouTube TV</div>
+          <div class="card-subtitle">Watch 4K HD videos, channels, and live streams without ads.</div>
+        </div>
+      </a>
+
+      <!-- Cinejoy Card -->
+      <a href="https://cinejoy.pk/" class="card card-cinejoy">
+        <div class="card-glow"></div>
+        <div class="card-top">
+          <div class="app-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="#ffffff">
+              <path d="M19.82 2H4.18C2.97 2 2 2.97 2 4.18v15.64C2 21.03 2.97 22 4.18 22h15.64c1.21 0 2.18-.97 2.18-2.18V4.18C22 2.97 21.03 2 19.82 2zM7 4h2v2H7V4zm-3 0h2v2H4V4zm0 4h2v2H4V8zm0 4h2v2H4v-2zm0 4h2v2H4v-2zm16 4.82c0 .65-.53 1.18-1.18 1.18H4.18c-.65 0-1.18-.53-1.18-1.18V18h2v2h2v-2h10v2h2v-2h1v2.82zm-3-4.82h2v2h-2v-2zm0-4h2v2h-2v-2zm0-4h2v2h-2V8zm0-4h2v2h-2V4zm-7 11V9l5 3-5 3z"/>
+            </svg>
+          </div>
+          <span class="app-pill">4K Cinema</span>
+        </div>
+        <div class="card-bottom">
+          <div class="card-title">Cinejoy 4K</div>
+          <div class="card-subtitle">Stream latest movies and series in full 4K Ultra HD.</div>
+        </div>
+      </a>
+
+      <!-- Google Web Search Card -->
+      <a href="https://www.google.com/" class="card card-google">
+        <div class="card-glow"></div>
+        <div class="card-top">
+          <div class="app-icon">
+            <svg viewBox="0 0 24 24" width="32" height="32">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+            </svg>
+          </div>
+          <span class="app-pill">Global Web</span>
+        </div>
+        <div class="card-bottom">
+          <div class="card-title">Google Web</div>
+          <div class="card-subtitle">Search the global web, Wikipedia, articles, and websites.</div>
+        </div>
+      </a>
+
+      <!-- VidBinge Card -->
+      <a href="https://vidbinge.com/" class="card card-vidbinge">
+        <div class="card-glow"></div>
+        <div class="card-top">
+          <div class="app-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="#ffffff">
+              <path d="M4 6.47L5.76 10H20v8H4V6.47M22 4h-4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4z"/>
+            </svg>
+          </div>
+          <span class="app-pill">HD Stream</span>
+        </div>
+        <div class="card-bottom">
+          <div class="card-title">VidBinge</div>
+          <div class="card-subtitle">Fast, lightweight clean streaming player for movies and TV.</div>
+        </div>
+      </a>
+    </div>
   </div>
-</main>
-<div class="hint">Arrows navigate &middot; OK opens &middot; BACK returns</div>
+
+  <!-- Bottom Navigation Guidance -->
+  <footer>
+    <div class="hint-row">
+      <div class="hint-item">
+        <span class="key-cap">&larr; &uarr; &darr; &rarr;</span>
+        <span>Navigate</span>
+      </div>
+      <div class="hint-item">
+        <span class="key-cap">OK</span>
+        <span>Select / Open</span>
+      </div>
+      <div class="hint-item">
+        <span class="key-cap">BACK</span>
+        <span>Return Home</span>
+      </div>
+    </div>
+    <div class="system-stats">
+      HiSilicon Hi3798MV300 &bull; Mali-450 GPU &bull; 1.6 GHz Performance Mode
+    </div>
+  </footer>
+</div>
 </body>
 </html>

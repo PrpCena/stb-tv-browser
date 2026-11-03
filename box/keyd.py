@@ -40,19 +40,24 @@ BOOSTER_JS = """(function() {
     window.open = function() { console.log('Blocked window.open'); return null; };
   } catch(e) {}
 
-  // 2. Pre-seed adblock & preferences
+  // 2. Pre-seed adblock, preferences & Cinejoy 4K server priority
   try {
     localStorage.setItem('addies', 'false');
     localStorage.setItem('adblock', 'true');
+    const existing = JSON.parse(localStorage.getItem('cinejoy_settings') || '{}');
+    if (!existing.serverOrder || existing.serverOrder[0] !== 'Lisbon') {
+      existing.serverOrder = ['Lisbon', 'secret', 'Nebula', 'Solara', 'Athens'];
+      localStorage.setItem('cinejoy_settings', JSON.stringify(existing));
+    }
   } catch(e) {}
 
-  // 3. Screen dimensions & high-DPI emulation
+  // 3. 4K Ultra HD screen dimensions & high-DPI emulation
   try {
-    Object.defineProperty(screen, 'width', { get: () => 1920 });
-    Object.defineProperty(screen, 'height', { get: () => 1080 });
-    Object.defineProperty(screen, 'availWidth', { get: () => 1920 });
-    Object.defineProperty(screen, 'availHeight', { get: () => 1080 });
-    Object.defineProperty(window, 'devicePixelRatio', { get: () => 1.5 });
+    Object.defineProperty(screen, 'width', { get: () => 3840 });
+    Object.defineProperty(screen, 'height', { get: () => 2160 });
+    Object.defineProperty(screen, 'availWidth', { get: () => 3840 });
+    Object.defineProperty(screen, 'availHeight', { get: () => 2160 });
+    Object.defineProperty(window, 'devicePixelRatio', { get: () => 2.0 });
   } catch(e) {}
 
   // 4. Inject Global TV Styles (Focus Outlines, SVG logo fix, Hide Banner Ads)
@@ -130,7 +135,7 @@ BOOSTER_JS = """(function() {
       logo.style.setProperty('width', 'auto', 'important');
     }
     if (location.pathname.startsWith('/movie/')) {
-      const playBtn = Array.from(document.querySelectorAll('button, a')).find(b => b.innerText && b.innerText.trim().startsWith('Play'));
+      const playBtn = Array.from(document.querySelectorAll('button, a')).find(b => b.innerText && (b.innerText.trim().startsWith('Play') || b.innerText.trim().startsWith('Resume')));
       if (playBtn && document.activeElement !== playBtn) {
         playBtn.focus();
         playBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -146,6 +151,7 @@ BOOSTER_JS = """(function() {
         v.style.height = '100vh';
         v.style.zIndex = '999999';
         v.style.background = '#000';
+        v.style.objectFit = 'contain';
       }
     }
   }
