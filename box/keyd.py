@@ -273,15 +273,118 @@ BOOSTER_JS = """(function() {
     if (skip) skip.click();
   }
 
+  // 11. Movy.sx TV Helpers
+  function handleMovy() {
+    if (!location.hostname.includes('movy.sx')) return;
+
+    // A. Inject TV CSS (High-visibility focus rings, card sizing, ad suppression, video fit)
+    if (!document.getElementById('tv-movy-css')) {
+      const parent = document.head || document.documentElement || document.body;
+      if (parent) {
+        const style = document.createElement('style');
+        style.id = 'tv-movy-css';
+        style.textContent = `
+          /* High-visibility TV focus ring with spring scale */
+          :focus, a:focus, button:focus, [role="button"]:focus,
+          [tabindex]:focus, .card:focus, .poster:focus, [class*="card"]:focus, [class*="poster"]:focus {
+            outline: 3px solid rgba(255, 255, 255, 0.9) !important;
+            outline-offset: 3px !important;
+            box-shadow: 0 0 18px rgba(16, 185, 129, 0.95) !important;
+            transform: scale(1.05) !important;
+            z-index: 50 !important;
+            transition: transform 0.15s cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 0.15s ease !important;
+          }
+
+          /* Ensure cards and buttons have comfortable remote target sizes */
+          a, button, [role="button"], .card, .poster, [class*="card"], [class*="poster"] {
+            min-height: 48px;
+          }
+
+          /* Suppress ad containers, banners, and overlays */
+          [class*="ad-"], [id*="ad-"], [class*="adsby"], [id*="adsby"],
+          [class*="banner"], [id*="banner"], [class*="sponsor"],
+          [class*="popup"], [id*="popup"], iframe[src*="ad"],
+          iframe[src*="doubleclick"], iframe[src*="googlesyndication"],
+          .ad-container, .native-ad, .promo, .promo-banner {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            height: 0 !important;
+            width: 0 !important;
+            opacity: 0 !important;
+          }
+
+          /* Compact nav/header for 10-foot TV viewing */
+          header, nav, [class*="navbar"], [class*="topbar"] {
+            max-height: 72px !important;
+          }
+
+          /* Edge-to-edge video player */
+          video {
+            object-fit: contain !important;
+          }
+        `;
+        parent.appendChild(style);
+      }
+    }
+
+    // B. Auto-focus Play / Resume / Watch button on title detail pages
+    const playBtn = Array.from(document.querySelectorAll('button, a, [role="button"]'))
+      .find(el => {
+        const t = (el.innerText || el.textContent || '').trim().toLowerCase();
+        return t === 'play' || t.startsWith('play') || t === 'resume' || t.startsWith('resume') || t === 'watch';
+      });
+
+    if (playBtn && document.activeElement !== playBtn) {
+      const active = document.activeElement;
+      if (!active || active === document.body || active.tagName === 'HTML') {
+        playBtn.focus();
+        playBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }
+
+    // C. Make all cards and posters focusable via D-Pad spatial navigation
+    document.querySelectorAll('a, button, [role="button"], .card, .poster, [class*="card"], [class*="poster"]')
+      .forEach(el => {
+        if (!el.hasAttribute('tabindex')) {
+          el.setAttribute('tabindex', '0');
+        }
+      });
+
+    // D. Edge-to-edge video playback when active
+    const v = document.querySelector('video');
+    if (v && (v.currentTime > 0 || !v.paused)) {
+      if (v.style.position !== 'fixed') {
+        v.style.position = 'fixed';
+        v.style.top = '0';
+        v.style.left = '0';
+        v.style.width = '100vw';
+        v.style.height = '100vh';
+        v.style.zIndex = '999999';
+        v.style.background = '#000';
+        v.style.objectFit = 'contain';
+      }
+    }
+  }
+
   setInterval(handleYouTube, 50);
   setInterval(function() {
     injectStyles();
     handleCinejoy();
+    handleMovy();
   }, 500);
 
 })();"""
 
 BACK_JS = """(function(){
+  if (location.hostname.includes('movy.sx')) {
+    if (location.pathname.includes('/watch') || location.pathname.includes('/play') || document.querySelector('video')) {
+      if (window.history.length > 1) {
+        window.history.back();
+        return 'movy_back';
+      }
+    }
+  }
   if (location.hostname.includes('cinejoy') && location.pathname.startsWith('/watch/')) {
     if (window.history.length > 1) { window.history.back(); return 'cinejoy_back'; }
     window.location.href = 'https://cinejoy.pk/';
@@ -338,7 +441,12 @@ def setup_devtools():
                     "*adservice.google.*",
                     "*adnxs.com*",
                     "*popads.net*",
+                    "*popcash.net*",
                     "*histats.com*",
+                    "*adsterra.com*",
+                    "*monetag.com*",
+                    "*clickadu.com*",
+                    "*propellerads.com*",
                 ]
             })
         except Exception:
