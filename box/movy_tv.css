@@ -150,28 +150,29 @@ h2, h3 {
 /* Card Shelves */
 [class*="movieCard"], .media-card {
   border-radius: 14px !important;
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease !important;
+  transition: transform 0.05s ease-out, box-shadow 0.05s ease-out !important;
 }
 
 [class*="movieCard"]:focus-within,
 .media-card:focus-within,
 [class*="movieCard"] a:focus,
 .media-card a:focus {
-  transform: translateY(-8px) scale(1.05) !important;
+  transform: translateY(-4px) scale(1.03) !important;
   outline: 3px solid #ffffff !important;
   outline-offset: 3px !important;
   border-radius: 14px !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.9), 0 0 28px rgba(16, 185, 129, 0.85) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.8), 0 0 20px rgba(16, 185, 129, 0.75) !important;
   z-index: 30 !important;
 }
 
 /* Clean, modern TV focus highlights with rounded corners & glass glow */
 a:focus, button:focus, [role="button"]:focus {
   outline: 2.5px solid rgba(255, 255, 255, 0.95) !important;
-  outline-offset: 3px !important;
-  border-radius: 14px !important;
-  box-shadow: 0 0 24px rgba(16, 185, 129, 0.85), 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+  outline-offset: 2px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.75), 0 4px 16px rgba(0, 0, 0, 0.8) !important;
   z-index: 50 !important;
+  transition: none !important;
 }
 
 /* Fullscreen Video Player */
